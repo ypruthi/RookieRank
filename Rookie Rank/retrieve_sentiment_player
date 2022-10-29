@@ -1,0 +1,55 @@
+
+from http import client
+import tweepy
+import config
+import pandas as pd
+import numpy
+import re
+import matplotlib.pyplot
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+matplotlib.pyplot.style.use('fivethirtyeight')
+
+Players_Sentiment_Data = {
+    "Name":[],
+    "Sentiment_Score":[]
+}
+
+#Required imports and dictionary for storing sentiment assessment
+
+#Pulls 100 tweets from twitter and stores it in result
+client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
+query = 'Lebron OR Lebron James OR @kingjames',
+result = client.search_recent_tweets(query=query, max_results=100, tweet_fields=['text'])
+
+
+#Takes tweets from result and stores it in dataframe
+dataframe = pd.DataFrame( [tweet.text for tweet in result.data], columns=['Lebron Tweets'])
+pd.set_option('max_colwidth', 200)
+pd.options.display.max_rows = 4000
+
+#Iterates through dataframe and conducts sentiment analysis,
+#   Stores overall sentiment coefficient in opinion variable 
+i = 0
+opinion = 0
+SIA = SentimentIntensityAnalyzer()
+for ind in dataframe.index:
+    print('Tweet:' + str(i))
+    print(dataframe['Lebron Tweets'][ind])
+    assessed_tweet = SIA.polarity_scores(dataframe['Lebron Tweets'][ind])['compound']
+    print(('Score:'))
+    print(assessed_tweet)
+    print('================================')
+    i += 1
+    opinion += assessed_tweet
+print(opinion)
+
+#Appends player name, and overal sentiment coefficient to dictionary
+Players_Sentiment_Data["Name"].append("Lebron")
+Players_Sentiment_Data["Sentiment_Score"].append(opinion)
+print(Players_Sentiment_Data)
+
+#Stores tweets as .xls file
+dataframe.to_csv('tweet_data2.xls', index=False)
+
+
