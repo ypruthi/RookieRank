@@ -1,0 +1,93 @@
+from http import client
+import tweepy
+import config
+import pandas as pd
+import numpy
+import re
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+#Players_Sentiment_Data {Name: [Sentiment_Coefficient, Tweet_Count]} 
+Players_Sentiment_Data = {}
+
+# get_player_data(first, last, username, tweet_amount) takes an athlete's first name, last name,
+#       and twitter username, and returns tweets equivalent to tweet_amount corresponding to the player
+def get_player_data(first, last, username, tweet_amount):
+    client = tweepy.Client(bearer_token=config.BEARER_TOKEN)
+    full_name = str(first) + ' ' + str(last)
+    query = str(full_name)  + ' -is: retweet' + ' OR ' + str(username) + ' -is: retweet'
+    print(query)
+    result = client.search_recent_tweets(query=query, max_results=int(tweet_amount), tweet_fields=['text'])
+    return result
+
+# get_player_data(first, last, username) takes an athlete's first name, last name,
+#       and twitter username, and creates a dataframe for the player containing 100 tweets pulled from twitter,
+#       along with adding the player's name and corresponding sentiment analysis on tweets to Player_Sentiment_Data dictionary
+def init_player(first, last, username):
+    #Retrieves 100 tweets to create db
+    result = get_player_data(first, last, username, 100)
+
+    #Initializes playerdatabase
+    dataframe = pd.DataFrame( [tweet.text for tweet in result.data], columns=[str(first) + ' Tweets'])
+    pd.set_option('max_colwidth', 200)
+    pd.options.display.max_rows = 100000
+    display(dataframe)
+    dataframe.to_csv('tweet_data' + str(first) + '.xls')
+
+    #Iterates through db to conduct sentiment analysis, storing results in sentiment variable
+    sentiment = 0
+    SIA = SentimentIntensityAnalyzer()
+    for ind in dataframe.index:
+        assessed_tweet = SIA.polarity_scores(dataframe[str(first) + ' Tweets'][ind])['compound']
+        sentiment += assessed_tweet
+    sentiment = (sentiment / 100) #average out coefficient
+    print ('=======================')
+    print(sentiment)
+
+    #Appends player's sentiment data to dictionary
+    Players_Sentiment_Data[str(first)] = [sentiment, 100]
+    print(Players_Sentiment_Data)
+    return dataframe
+
+# add_data(first, last, dataframe) takes an athlete's first name, last name,
+#       and twitter username, then updates the player's dataframe with 100 additional tweets requested from tweepy, and updates
+#       Sentiment_Coefficient and Tweet_Count in Player_Sentiment_Data dictionary
+def add_data(first, last, username, dataframe):
+    #Retrieves 100 tweets to add to db
+    result = get_player_data(first, last, username, 100)
+    
+    #Creates temp dataframe to iterate through for sentiment analysis
+    dataframe_temp = pd.DataFrame( [tweet.text for tweet in result.data], columns=[str(first) + ' Tweets'])
+    pd.set_option('max_colwidth', 200)
+    pd.options.display.max_rows = 100
+    display(dataframe_temp)
+    dataframe_temp.to_csv('concat_test.xls', index=False)
+
+    #Iterates through db to conduct sentiment analysis, storing results in sentiment variable
+    sentiment = 0
+    SIA = SentimentIntensityAnalyzer()
+    for ind in dataframe_temp.index:
+        assessed_tweet = SIA.polarity_scores(dataframe_temp[str(first) + ' Tweets'][ind])['compound']
+        sentiment += assessed_tweet
+    print ('=======================')
+
+    #Updates dictionary's sentiment coefficient
+    sentiment_old = Players_Sentiment_Data[str(first)][0]
+    count_oldtweets = Players_Sentiment_Data[str(first)][1]
+    new_count = count_oldtweets + 100
+    new_sentiment = (sentiment + (sentiment_old * count_oldtweets)) / new_count
+    Players_Sentiment_Data[str(first)][0] = new_sentiment
+    Players_Sentiment_Data[str(first)][1] = new_count
+
+    #Concatenates temp dataframe into player's existing dataframe
+    dataframe = pd.concat([dataframe, dataframe_temp], ignore_index=True)
+    dataframe.to_csv('tweet_data' + str(first) + '.xls')
+
+    return dataframe
+
+
+
+
+df_steph = init_player('Steph', 'Curry', '@StephenCurry30')
+df_steph = add_data('Steph', 'Curry', '@StephenCurry30', df_steph)
+
+
