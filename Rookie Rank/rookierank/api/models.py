@@ -1,22 +1,25 @@
 from django.db import models
 import string
 import random
+
 # Create your models here.
 
-def generate_unique_playerID():
+def generate_unique_name():
     length = 5
 
     while (True):
-        playerID = ''.join(random.choices(string.string.ascii_uppercase, k=length))
+        name = ''.join(random.choices(string.ascii_uppercase, k=length))
 
-        if Player.objects.filter(playerID = playerID).count() == 0:
+        if RankRoom.objects.filter(name = name).count() == 0:
             break
-    return playerID
+    return name
 
-class Player(models.Model):
-    name = models.CharField(max_length = 50, default = "", unique = True)
-    playerID = models.CharField(max_length = 5, unique = True)
-    sentiment_score = models.DecimalField(max_digits = 5, decimal_places = 4, unique = False)
+class RankRoom(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length = 50, default = generate_unique_name, unique = True)
+    host = models.CharField(max_length=50, unique=True, default="")
+    number_of_players = models.IntegerField(null=False, default=1)
+    choose_players = models.BooleanField(null=False, default=False)
     created_at=models.DateTimeField(auto_now_add=True)
 
 

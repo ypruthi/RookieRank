@@ -1,7 +1,13 @@
 from rest_framework import serializers
-from .models import Player
+from .models import RankRoom
 
-class PlayerSerializer(serializers.ModelSerializer):
+class RankRoomSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Player
-        fields = ('id','name', 'playerID', 'sentiment_score', 'created_at')
+        model = RankRoom
+        fields = ('id','name', 'host', 'number_of_players', 
+        'choose_players','created_at')
+
+class CreateRankRoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RankRoom
+        fields = ('number_of_players', 'choose_players')
